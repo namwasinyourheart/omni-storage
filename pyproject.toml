@@ -3,17 +3,9 @@ name = "omni-storage"
 version = "0.3.0"
 description = "A unified Python interface for file storage."
 readme = "README.md"
-authors = [
-    { name = "LUIS NOVO", email = "lfnovo@gmail.com" }
-]
 requires-python = ">=3.9,<3.14"
 license = { text = "MIT" }
 keywords = ["s3", "storage", "gcs", "google-cloud-storage", "boto3", "amazon-s3"]
-
-[project.urls]
-repository = "https://github.com/lfnovo/omni-storage"
-homepage = "https://github.com/lfnovo/omni-storage"
-documentation = "https://github.com/lfnovo/omni-storage#readme"
 
 
 
