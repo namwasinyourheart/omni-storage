@@ -62,6 +62,35 @@ class Storage(ABC):
         """
         pass
 
+    def upload_dir(self, local_dir: str, destination_dir: str) -> str:
+        """
+        Upload a directory from the local file system to the storage.
+
+        Args:
+            local_dir (str): The path to the local directory to upload.
+            destination_dir (str): The path in the storage system where the directory should be saved.
+
+        Returns:
+            str: The path or identifier of the saved directory in the storage system.
+        """
+        raise NotImplementedError(
+            f"upload_dir is not implemented for {self.__class__.__name__}"
+        )
+
+    def delete_dir(self, dir_path: str) -> bool:
+        """
+        Delete a directory from the storage.
+
+        Args:
+            dir_path (str): The path of the directory in the storage system.
+
+        Returns:
+            bool: True if the directory was deleted, False otherwise.
+        """
+        raise NotImplementedError(
+            f"delete_dir is not implemented for {self.__class__.__name__}"
+        )
+
     @abstractmethod
     def exists(self, file_path: str) -> bool:
         """

@@ -48,8 +48,7 @@ class GCSStorage(Storage):
             str: The path of the saved file in GCS.
         """
         blob = self.bucket.blob(destination_path)
-        with open(file_path, "rb") as file_obj:
-            blob.upload_from_file(file_obj)
+        blob.upload_from_filename(file_path)
         return destination_path
 
     def read_file(self, file_path: str) -> bytes:

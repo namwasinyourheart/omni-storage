@@ -94,8 +94,7 @@ class S3Storage(Storage):
         Returns:
             str: The path of the saved file in S3.
         """
-        with open(file_path, "rb") as file_obj:
-            self.s3.upload_fileobj(file_obj, self.bucket_name, destination_path)
+        self.s3.upload_file(file_path, self.bucket_name, destination_path)
         return destination_path
 
     def exists(self, file_path: str) -> bool:

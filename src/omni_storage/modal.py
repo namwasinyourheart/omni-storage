@@ -58,7 +58,16 @@ class ModalStorage(Storage):
 
         # Always show current profile to show which account is active
         print("--- Modal Account Info ---")
-        subprocess.run("modal profile current", shell=True)
+        try:
+            # Capture output to ensure it shows up in Notebook environments
+            result = subprocess.run("modal profile current", shell=True, capture_output=True, text=True, encoding='utf-8')
+            if result.stdout:
+                print(result.stdout.strip())
+            if result.stderr:
+                print(result.stderr.strip())
+        except Exception:
+            # Fallback to simple run if capture fails
+            subprocess.run("modal profile current", shell=True)
 
     def _normalize_path(self, file_path: str) -> str:
         """Ensure path starts with / for Modal Volume operations."""
@@ -125,6 +134,33 @@ class ModalStorage(Storage):
 
         return remote_path
 
+    def upload_dir(self, local_dir: str, destination_dir: str) -> str:
+        """Upload a local directory to Modal Volume using Modal CLI.
+
+        Args:
+            local_dir: Path to the local directory to upload.
+            destination_dir: Destination path inside the volume.
+
+        Returns:
+            str: The path of the saved directory in the volume.
+        """
+        import subprocess
+        import os as _os
+        remote_path = self._normalize_path(destination_dir)
+        try:
+            # Wrap paths in quotes to handle spaces and special characters
+            command = f'modal volume put {self.volume_name} "{local_dir}" "{remote_path}"'
+            env = _os.environ.copy()
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["LC_ALL"] = "C.UTF-8"
+            env["LANG"] = "C.UTF-8"
+            result = subprocess.run(command, shell=True, env=env)
+            if result.returncode == 0:
+                return remote_path
+        except Exception as e:
+            print(f"Modal upload_dir error for {remote_path}: {e}")
+            raise RuntimeError(f"Modal upload_dir failed: {e}")
+
     def exists(self, file_path: str) -> bool:
         """Check if a file exists in Modal Volume."""
         remote_path = self._normalize_path(file_path)
@@ -160,17 +196,31 @@ class ModalStorage(Storage):
         import os as _os
         remote_path = self._normalize_path(file_path)
         try:
-            command = f"modal volume rm {self.volume_name} {remote_path}"
+            # Wrap paths in quotes to handle spaces and special characters
+            command = f'modal volume rm -r {self.volume_name} "{remote_path}"'
             env = _os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, encoding='utf-8', errors='replace', env=env)
+            env["LC_ALL"] = "C.UTF-8"
+            env["LANG"] = "C.UTF-8"
+            result = subprocess.run(command, shell=True, env=env)
             if result.returncode == 0:
                 return True
-            print(f"Modal delete error for {remote_path}: {result.stderr.strip()}")
             return False
         except Exception as e:
             print(f"Modal delete error for {remote_path}: {e}")
             return False
+
+    def delete_dir(self, dir_path: str) -> bool:
+        """Delete a directory from Modal Volume using Modal CLI.
+
+        Args:
+            dir_path: Path to the directory to delete.
+
+        Returns:
+            bool: True if deleted successfully, False otherwise.
+        """
+        # Modal CLI 'rm' works for both files and directories recursively
+        return self.delete_file(dir_path)
 
     def download_file(self, file_path: str, local_path: str) -> bool:
         """Download a file from Modal Volume to local filesystem using Modal CLI.
@@ -191,17 +241,72 @@ class ModalStorage(Storage):
             if local_dir and not _os.path.exists(local_dir):
                 _os.makedirs(local_dir, exist_ok=True)
 
-            command = f"modal volume get {self.volume_name} {remote_path} {local_path}"
+            # Wrap paths in quotes to handle spaces and special characters
+            command = f'modal volume get {self.volume_name} "{remote_path}" "{local_path}"'
             env = _os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, encoding='utf-8', errors='replace', env=env)
+            env["LC_ALL"] = "C.UTF-8"
+            env["LANG"] = "C.UTF-8"
+            result = subprocess.run(command, shell=True, env=env)
             if result.returncode == 0:
                 return True
-            print(f"Modal download error for {remote_path}: {result.stderr.strip()}")
             return False
         except Exception as e:
             print(f"Modal download error for {remote_path}: {e}")
             return False
+
+    @staticmethod
+    def list_volume() -> list[dict]:
+        """List all Modal Volumes in the workspace.
+
+        Returns:
+            list[dict]: List of volume info dicts with keys:
+                - name: Volume name
+                - created_at: Creation timestamp (datetime)
+                - created_by: User who created the volume
+        """
+        volumes = modal.Volume.objects.list()
+        result = []
+        for vol in volumes:
+            info = vol.info()
+            result.append({
+                "name": info.name or vol.name,
+                "created_at": info.created_at,
+                "created_by": info.created_by,
+            })
+        return result
+
+    def list_dir(self, path: str = "/") -> list[dict]:
+        """List contents of a directory in the Modal Volume.
+
+        Args:
+            path: Directory path to list (default: "/")
+
+        Returns:
+            list[dict]: List of file entry dicts with keys:
+                - name: File or directory name
+                - type: "file", "dir", or "symlink"
+                - size: Size in bytes (0 for directories)
+                - mtime: Last modified timestamp (unix timestamp as int)
+        """
+        remote_path = self._normalize_path(path)
+        entries = self.vol.listdir(remote_path)
+        result = []
+        for entry in entries:
+            if entry.type == modal.volume.FileEntryType.DIRECTORY:
+                entry_type = "dir"
+            elif entry.type == modal.volume.FileEntryType.SYMLINK:
+                entry_type = "symlink"
+            else:
+                entry_type = "file"
+            name = entry.path.strip("/").split("/")[-1]
+            result.append({
+                "name": name,
+                "type": entry_type,
+                "size": entry.size,
+                "mtime": entry.mtime,
+            })
+        return result
 
     def append_file(
         self,

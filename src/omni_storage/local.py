@@ -69,6 +69,33 @@ class LocalStorage(Storage):
 
         return str(destination_path)
 
+    def upload_dir(self, local_dir: str, destination_dir: str) -> str:
+        """
+        Upload a directory from the local file system to local storage.
+
+        Args:
+            local_dir (str): The path to the local directory to upload.
+            destination_dir (str): The path in the storage system where the directory should be saved.
+
+        Returns:
+            str: The path of the saved directory in local storage.
+        """
+        import shutil
+        dest = self.base_dir / destination_dir
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(local_dir, dest)
+        return str(destination_dir)
+
+    def delete_dir(self, dir_path: str) -> bool:
+        """Delete a directory from local storage."""
+        import shutil
+        full_path = self.base_dir / dir_path
+        if full_path.exists() and full_path.is_dir():
+            shutil.rmtree(full_path)
+            return True
+        return False
+
     def exists(self, file_path: str) -> bool:
         """
         Check if a file exists in local storage.
