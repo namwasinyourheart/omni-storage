@@ -222,6 +222,35 @@ class ModalStorage(Storage):
         # Modal CLI 'rm' works for both files and directories recursively
         return self.delete_file(dir_path)
 
+    def download_dir(self, remote_dir: str, local_dir: str) -> str:
+        """Download a directory from Modal Volume to local filesystem using Modal CLI.
+
+        Args:
+            remote_dir: Path to the directory in Modal Volume to download.
+            local_dir: Local destination path to save the directory.
+
+        Returns:
+            str: The local path where the directory was downloaded.
+        """
+        import subprocess
+        import os as _os
+        remote_path = self._normalize_path(remote_dir)
+        try:
+            if not _os.path.exists(local_dir):
+                _os.makedirs(local_dir, exist_ok=True)
+
+            command = f'modal volume get {self.volume_name} "{remote_path}" "{local_dir}"'
+            env = _os.environ.copy()
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["LC_ALL"] = "C.UTF-8"
+            env["LANG"] = "C.UTF-8"
+            result = subprocess.run(command, shell=True, env=env)
+            if result.returncode == 0:
+                return local_dir
+        except Exception as e:
+            print(f"Modal download_dir error: {e}")
+            raise RuntimeError(f"Modal download_dir failed: {e}")
+
     def download_file(self, file_path: str, local_path: str) -> bool:
         """Download a file from Modal Volume to local filesystem using Modal CLI.
 

@@ -12,8 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 print("--- Initializing Storage ---")
 # ModalStorage sẽ tự động gọi _login_if_credentials_present() bên trong __init__
-# storage = get_storage()
-storage = get_storage(storage_type="local")
+storage = get_storage()
 print(f"Storage type: {type(storage).__name__}")
 
 # Sử dụng tên file mới để tránh lỗi FileExistsError nếu chưa có force=True
@@ -88,6 +87,44 @@ else:
 # Clean up test file
 storage.delete_file("data/to_download.txt")
 print("Cleaned up test file from Modal Volume.")
+
+# print(f"\n--- Testing upload_dir ---")
+# # Create a local directory with some files
+# local_test_dir = "E:/projects/misc/test_dir_upload"
+# os.makedirs(local_test_dir, exist_ok=True)
+# with open(os.path.join(local_test_dir, "file1.txt"), "w") as f:
+#     f.write("Content of file 1")
+# with open(os.path.join(local_test_dir, "file2.txt"), "w") as f:
+#     f.write("Content of file 2")
+# os.makedirs(os.path.join(local_test_dir, "subdir"), exist_ok=True)
+# with open(os.path.join(local_test_dir, "subdir", "file3.txt"), "w") as f:
+#     f.write("Content of file 3")
+# print(f"Created local directory: {local_test_dir}")
+
+# # Upload directory to Modal Volume
+upload_dest_dir = "data/uploaded_dir"
+# storage.upload_dir(local_test_dir, upload_dest_dir)
+# print(f"Uploaded directory to: {upload_dest_dir}")
+
+# # Verify upload by checking existence of one file
+# if storage.exists(os.path.join(upload_dest_dir, "subdir", "file3.txt").replace("\\", "/")):
+#     print("Verified: Directory upload successful.")
+# else:
+#     print("Failed: Directory upload verification failed.")
+
+# # Cleanup local directory
+# import shutil
+# shutil.rmtree(local_test_dir)
+# print("Cleaned up local test directory.")
+
+print(f"\n--- Testing delete_dir ---")
+success = storage.delete_dir(upload_dest_dir)
+if success:
+    print(f"Successfully deleted directory: {upload_dest_dir}")
+    if not storage.exists(os.path.join(upload_dest_dir, "subdir", "file3.txt").replace("\\", "/")):
+        print("Verified: Directory no longer exists.")
+else:
+    print(f"Failed to delete directory: {upload_dest_dir}")
 
 print("\n--- Testing append_file (Should fail) ---")
 try:

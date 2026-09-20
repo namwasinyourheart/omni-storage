@@ -155,6 +155,8 @@ storage = get_storage(storage_type="gcs")
 
 Store files in [Modal Volumes](https://modal.com/docs/guide/volumes).
 
+**See the [Modal Storage Guide](MODAL_GUIDE.md) for detailed instructions and examples.**
+
 **Required Environment Variables:**
 - `MODAL_VOLUME_NAME`: Name of the Modal Volume.
 - `MODAL_CREDENTIALS` (optional): Path to a JSON file for automatic login.

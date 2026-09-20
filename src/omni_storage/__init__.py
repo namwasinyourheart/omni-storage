@@ -1,1 +1,1 @@
-"""Storage module initialization."""
+from .factory import get_storage
